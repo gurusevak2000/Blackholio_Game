@@ -15,15 +15,15 @@ Plan each feature before coding it. Check off tasks as you go.
 
 ---
 
-## 🔲 Player spawning and movement
+## � Player spawning and movement
 
-**Status:** In progress (following tutorial)
+**Status:** 60% complete (prefabs + visual sync done; input/movement reducer pending)
 **Goal:** A player connects, spawns in the world, and can move around. Other connected players are visible.
 **Done when:** Two Unity instances show each other moving in real time on localhost.
 
 ### Server tasks (server-csharp/spacetimedb/Lib.cs)
 - [x] Define core tables (Entity, Circle, Food, Player, Config) — see `Lib.cs`
-- [x] `Connect` reducer on client connect
+- [x] `Connect` reducer on client connect (EnterGame)
 - [ ] Write movement / split reducers (tutorial next steps)
 - [ ] Write `UpdatePlayerPosition` reducer (or equivalent)
 
@@ -31,10 +31,11 @@ Plan each feature before coding it. Check off tasks as you go.
 - [x] Run `spacetime generate` → bindings in `Assets/SpacetimeDB/`
 - [x] Connect to `127.0.0.1:3000` in `GameManager.cs` + `SpacetimeDBNetworkManager`
 - [x] Subscribe to all tables on connect (`SubscribeToAllTables`)
-- [ ] Subscribe to specific tables with row callbacks (spawn/update/delete)
-- [ ] Spawn a player prefab on connect
-- [ ] Send position updates every frame from `PlayerMovement.cs`
-- [ ] Render other players from table subscription callbacks
+- [x] Subscribe to specific tables with row callbacks (spawn/update/delete) — EntityController, CircleController, FoodController
+- [x] Spawn entity prefabs on table insert — all controllers instantiate prefabs dynamically
+- [ ] Spawn a player prefab on connect — prefab exists but needs EnterGame reducer call on connect
+- [ ] Send position updates every frame from `PlayerController.cs` (input handling + movement reducer call)
+- [x] Render other players from table subscription callbacks — PlayerController subscribes to Player table
 
 ### Notes
 - `spacetime generate --lang csharp --out-dir ../Client-unity/Assets/SpacetimeDB`

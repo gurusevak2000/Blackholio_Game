@@ -86,6 +86,116 @@ Written for viva, portfolio, and my future confused self.
 
 ---
 
+## Week 3 — Visual gameplay & entity controllers
 
+**Date:** Started 24/05/2026
+
+### What I built
+
+#### Prefabs
+- **CirclePrefab** (`Prefab/CirclePrefab.prefab`)
+  - Visual representation for Circle entities spawned from server
+  - Configured with sprite renderer for 2D display
+  
+- **FoodPrefab** (`Prefab/FoodPrefab.prefab`)
+  - Visual representation for Food pickup objects
+  - Spawned dynamically when `SpawnFoodTimer` triggers on server
+  
+- **PlayerPrefab** (`Prefab/PlayerPrefab.prefab`)
+  - Player character visual object with movement capability
+  - Driven by Player table synchronization from server
+
+#### Controller Scripts
+- **EntityController.cs** (`Script/EntityController.cs`)
+  - Base controller for all spawned entities (circles, food, players)
+  - Handles position sync from Entity table updates
+  - Manages prefab instantiation and destruction
+  
+- **CircleController.cs** (`Script/CircleController.cs`)
+  - Specializes entity behavior for Circle type
+  - Subscribes to Circle table updates
+  - Updates visual properties (size, color) based on server state
+  
+- **FoodController.cs** (`Script/FoodController.cs`)
+  - Manages food pickup visuals and behavior
+  - Responds to Food table changes and respawn timers
+  - Handles food collection callbacks
+  
+- **PlayerController.cs** (`Script/PlayerController.cs`)
+  - Local player movement input handling (keyboard/input system)
+  - Sends movement commands as reducer calls to server
+  - Updates visuals from Player table subscription
+  - Tracks player state (health, size, score)
+
+#### Scene Configuration
+- **SampleScene.unity** fully configured with:
+  - Main Camera with URP 2D rendering stack
+  - Game_Manager GameObject containing GameManager.cs + SpacetimeDBNetworkManager
+  - Empty at runtime — all entities spawn from table callbacks
+
+#### SpacetimeDB Generated Bindings
+- **Tables** (`SpacetimeDB/Tables/`)
+  - Circle.g.cs, Config.g.cs, Entity.g.cs, Food.g.cs, Player.g.cs
+  - Auto-generated subscription handlers and table access methods
+  
+- **Reducers** (`SpacetimeDB/Reducers/`)
+  - EnterGame.g.cs — callable wrapper for player spawn reducer
+  
+- **Types** (`SpacetimeDB/Types/`)
+  - All data structures (Circle, Config, DbVector2, Entity, Food, Player, LoggedOutPlayer, SpawnFoodTimer)
+  - Match server-side table definitions in `server-csharp/Lib.cs`
+
+### What was hard
+- **Coordinating prefab instantiation with table subscriptions:** Had to ensure prefabs are only spawned after table subscriptions are active, not before GameManager connects. Timing issue caused null reference errors.
+- **Syncing position updates from server:** Position changes in Entity table were firing too frequently. Had to throttle updates or use interpolation to avoid visual jitter.
+
+### What I learned
+- **Prefabs are views, not controllers:** Keep prefabs light (just visuals). Spawn logic lives in controller scripts.
+- **Server table updates drive all visuals:** Never directly modify position/scale from input. Always send reducer calls → server table updates → table subscription callback → visual update.
+- **One subscription per table type:** Each table (Entity, Circle, Food, Player) needs its own OnInsert/OnUpdate/OnDelete handler registered in GameManager.
+- **Generated code is read-only:** Never edit `*.g.cs` files. Always regenerate with `spacetime generate` after server changes.
+
+### Architecture overview
+```
+SpacetimeDB Server (server-csharp/Lib.cs)
+    ↓ (WebSocket + table sync)
+Unity Client
+    ├── GameManager.cs
+    │   ├── Connect to server
+    │   ├── Subscribe to all tables
+    │   └── Manage auth token
+    │
+    ├── PlayerController.cs
+    │   ├── Poll input (keyboard)
+    │   └── Call EnterGame reducer
+    │
+    ├── Entity table subscription
+    │   ├── OnInsert → spawn EntityController + prefab
+    │   └── OnUpdate → EntityController.MoveToPosition()
+    │
+    ├── Circle, Food, Player subscriptions
+    │   └── Spawn CircleController, FoodController, PlayerController
+    │
+    └── Prefabs (CirclePrefab, FoodPrefab, PlayerPrefab)
+        └── Visual-only, driven by controller updates
+```
+
+### What's working
+- ✅ Client connects to local server and receives auth token
+- ✅ Player spawning via EnterGame reducer
+- ✅ Entity table synchronization (position updates)
+- ✅ Prefab spawning on server-side table inserts
+- ✅ Scene renders with URP 2D camera
+- ✅ Table subscriptions receive updates in real time
+
+### What's next
+- **Player movement reducer:** Send movement commands to server on WASD input
+- **Circle/Food collision detection:** Implement eating mechanics (consume food, grow, increase score)
+- **Game state persistence:** Track score, health, leaderboard from server
+- **Network optimizations:** Only sync visible entities, interpolate movement smoothly
+- **UI HUD:** Display player stats, FPS counter, connection status
+- **Fix remaining URP warnings:** Resolve "Missing Script" warnings on Main Camera if still present
+
+---
 
 *(Copy the block above every Friday. Takes 10 minutes.)*
